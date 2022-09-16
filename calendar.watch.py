@@ -9,7 +9,7 @@ import time
 import subprocess
 
 from datetime import datetime as dada
-from common import DotDict, fmt_time, local_time
+from sd.common import DotDict, fmt_time, local_time
 
 
 
@@ -89,7 +89,7 @@ def read_calendar(path, events, modified):
 		modified = os.path.getmtime(path)
 		seen_events = []
 		with open(path) as f:
-			data = dict()
+			data = DotDict()
 			for line in f.readlines():
 				line = line.strip()
 				if parse_line(data, line):
@@ -112,7 +112,7 @@ def read_calendar(path, events, modified):
 					else:
 						#Skip existing events
 						events[uid] = e
-					data =
+					data = DotDict()
 
 		# Remove events that no longer exist
 		for uid in list(events.keys()):
