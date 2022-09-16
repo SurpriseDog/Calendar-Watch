@@ -16,533 +16,533 @@ from datetime import datetime as dada
 
 
 def spawn(func, *args, daemon=True, delay=0, **kargs):
-	'''Spawn a function to run seperately and return the que
-	waits for delay seconds before running
-	Get the results with que.get()
-	daemon = running in background, will shutdown automatically when main thread exits
-	Check if the thread is still running with thread.is_alive()
-	print('func=', func, id(func))'''
-	#replaces fork_cmd, mcall
+    '''Spawn a function to run seperately and return the que
+    waits for delay seconds before running
+    Get the results with que.get()
+    daemon = running in background, will shutdown automatically when main thread exits
+    Check if the thread is still running with thread.is_alive()
+    print('func=', func, id(func))'''
+    # replaces fork_cmd, mcall
 
-	def worker():
-		if delay:
-			time.sleep(delay)
-		ret = func(*args, **kargs)
-		que.put(ret)
+    def worker():
+        if delay:
+            time.sleep(delay)
+        ret = func(*args, **kargs)
+        que.put(ret)
 
-	que = queue.Queue()
-	# print('args=', args)
-	thread = threading.Thread(target=worker)
-	thread.daemon = daemon
-	thread.start()
-	return que, thread
+    que = queue.Queue()
+    # print('args=', args)
+    thread = threading.Thread(target=worker)
+    thread.daemon = daemon
+    thread.start()
+    return que, thread
 
 
 def quote(text):
-	"Wrap a string in the minimum number of quotes to be quotable"
-	for q in ('"', "'", "'''"):
-		if q not in text:
-			break
-	else:
-		return repr(text)
-	if "\n" in text:
-		q = "'''"
-	return q + text + q
+    "Wrap a string in the minimum number of quotes to be quotable"
+    for q in ('"', "'", "'''"):
+        if q not in text:
+            break
+    else:
+        return repr(text)
+    if "\n" in text:
+        q = "'''"
+    return q + text + q
 
 
 def indenter(*args, header='', level=0, tab=4, wrap=-4, even=False):
-	'''
-	Break up text into tabbed lines.
-	Wrap at max characters:
-	0 = Don't wrap
-	negative = wrap to terminal width minus wrap
-	'''
-	if wrap < 0:
-		wrap = TERM_WIDTH + wrap
+    '''
+    Break up text into tabbed lines.
+    Wrap at max characters:
+    0 = Don't wrap
+    negative = wrap to terminal width minus wrap
+    '''
+    if wrap < 0:
+        wrap = TERM_WIDTH + wrap
 
-	if type(tab) == int:
-		tab = ' ' * tab
-	header = str(header) + tab * level
-	words = (' '.join(map(str, args))).split(' ')
+    if type(tab) == int:
+        tab = ' ' * tab
+    header = str(header) + tab * level
+    words = (' '.join(map(str, args))).split(' ')
 
-	lc = float('inf')       # line count
-	for cut in range(wrap, -1, -1):
-		out = []
-		line = ''
-		count = 0
-		for word in words:
-			if count:
-				new = line + ' ' + word
-			else:
-				new = header + word
-			count += 1
-			if cut and len(new.replace('\t', ' ' * 4)) > cut:
-				out.append(line)
-				line = header + word
-			else:
-				line = new
-		if line:
-			out.append(line)
-		if not even:
-			return out
-		if len(out) > lc:
-			return prev
-		prev = out.copy()
-		lc = len(out)
-	return out
+    lc = float('inf')       # line count
+    for cut in range(wrap, -1, -1):
+        out = []
+        line = ''
+        count = 0
+        for word in words:
+            if count:
+                new = line + ' ' + word
+            else:
+                new = header + word
+            count += 1
+            if cut and len(new.replace('\t', ' ' * 4)) > cut:
+                out.append(line)
+                line = header + word
+            else:
+                line = new
+        if line:
+            out.append(line)
+        if not even:
+            return out
+        if len(out) > lc:
+            return prev
+        prev = out.copy()
+        lc = len(out)
+    return out
 
 
 def set_volume(level=80):
-	"Set computer master volume"
-	srun("amixer -D pulse sset Master " + str(level) + "% on")
+    "Set computer master volume"
+    srun("amixer -D pulse sset Master " + str(level) + "% on")
 
 
 def srun(*cmds, **kargs):
-	"Split all text before quick run"
-	return quickrun(flatten([str(item).split() for item in cmds]), **kargs)
+    "Split all text before quick run"
+    return quickrun(flatten([str(item).split() for item in cmds]), **kargs)
 
 
 def get_volume():
-	cur_level = []
-	for line in srun('amixer -D pulse'):
-		if 'Playback' in line and '%' in line:
-			cur_level.append(int(re.split('[\\[\\]]', line)[1][:-1]))
-	return int(sum(cur_level) / len(cur_level))
+    cur_level = []
+    for line in srun('amixer -D pulse'):
+        if 'Playback' in line and '%' in line:
+            cur_level.append(int(re.split('[\\[\\]]', line)[1][:-1]))
+    return int(sum(cur_level) / len(cur_level))
 
 
 def undent(text, tab=''):
-	"Remove whitespace at the beginning of lines of text"
-	return '\n'.join([tab + line.lstrip() for line in text.splitlines()])
+    "Remove whitespace at the beginning of lines of text"
+    return '\n'.join([tab + line.lstrip() for line in text.splitlines()])
 
 
 def warn(*args, header="\n\nWarning:", sep=' ', delay=1 / 64, confirm=False):
-	msg = undent(sep.join(list(map(str, args))))
-	time.sleep(eprint(msg, header=header, v=2) * delay)
-	if confirm:
-		_nul = input()
+    msg = undent(sep.join(list(map(str, args))))
+    time.sleep(eprint(msg, header=header, v=2) * delay)
+    if confirm:
+        _nul = input()
 
 
 class Eprinter:
-	'''Drop in replace to print errors if verbose level higher than setup level
-	To replace every print statement type: from common import eprint as print
+    '''Drop in replace to print errors if verbose level higher than setup level
+    To replace every print statement type: from common import eprint as print
 
-	eprint(v=-1)    # Normally hidden messages
-	eprint(v=0)     # Default level
-	eprint(v=1)     # Priority messages
-	eprint(v=2)     # Warnings
-	eprint(v=3)     # Errors
-	'''
+    eprint(v=-1)    # Normally hidden messages
+    eprint(v=0)     # Default level
+    eprint(v=1)     # Priority messages
+    eprint(v=2)     # Warnings
+    eprint(v=3)     # Errors
+    '''
 
-	# Setup: eprint = Eprinter(<verbosity level>).eprint
-	# Simple setup: from common import eprint
-	# Usage: eprint(messages, v=1)
+    # Setup: eprint = Eprinter(<verbosity level>).eprint
+    # Simple setup: from common import eprint
+    # Usage: eprint(messages, v=1)
 
-	# Don't forget they must end in 'm'
-	BOLD = '\033[1m'
-	WARNING = '\x1b[1;33;40m'
-	FAIL = '\x1b[0;31;40m'
-	END = '\x1b[0m'
+    # Don't forget they must end in 'm'
+    BOLD = '\033[1m'
+    WARNING = '\x1b[1;33;40m'
+    FAIL = '\x1b[0;31;40m'
+    END = '\x1b[0m'
 
-	def __init__(self, verbose=0):
-		self.level = verbose
-		self.history = []
+    def __init__(self, verbose=0):
+        self.level = verbose
+        self.history = []
 
-		#If string starts with '\n', look at history to make sure previous newlines don't exist
-		self.autonewlines = True
+        # If string starts with '\n', look at history to make sure previous newlines don't exist
+        self.autonewlines = True
 
-	def newlines(self, num=1):
-		"Print the required number of newlines after checking history to make sure they exist."
-		lines = sum([1 for line in self.history[-num:] if not line.strip()])
-		num -= lines
-		if num:
-			print('\n' * (num), end='')
-		return num
-
-
-	def eprint(self, *args, v=0, color=None, header=None, **kargs):
-		'''Print to stderr
-		Custom color example: color='1;33;40'
-		More colors: https://stackoverflow.com/a/21786287/11343425
-		'''
-		verbose = v
-		# Will print if verbose >= level
-		if verbose < self.level:
-			return 0
-
-		if not color:
-			if v == 2 and not color:
-				color = f"{self.WARNING}"
-			if v >= 3 and not color:
-				color = f"{self.FAIL}" + f"{self.BOLD}"
-		else:
-			color = '\x1b[' + color + 'm'
-
-		msg = ' '.join(map(str, args))
-		if self.autonewlines:
-			match = re.match('^\n*', msg)
-			if match:
-				num = self.newlines(match.span()[1])
-				if num:
-					#print('created', num, 'newlines', repr(msg[:64]))
-					msg = msg.lstrip('\n')
+    def newlines(self, num=1):
+        "Print the required number of newlines after checking history to make sure they exist."
+        lines = sum([1 for line in self.history[-num:] if not line.strip()])
+        num -= lines
+        if num:
+            print('\n' * (num), end='')
+        return num
 
 
-		self.history += msg.splitlines()
-		if len(self.history) > 64:
-			self.history = self.history[64:]
+    def eprint(self, *args, v=0, color=None, header=None, **kargs):
+        '''Print to stderr
+        Custom color example: color='1;33;40'
+        More colors: https://stackoverflow.com/a/21786287/11343425
+        '''
+        verbose = v
+        # Will print if verbose >= level
+        if verbose < self.level:
+            return 0
 
-		if header:
-			msg = header + ' ' + msg
-		if color:
-			print(color + msg + f"{self.END}", file=sys.stderr, **kargs)
-		else:
-			print(msg, file=sys.stderr, **kargs)
-		return len(msg)
+        if not color:
+            if v == 2 and not color:
+                color = f"{self.WARNING}"
+            if v >= 3 and not color:
+                color = f"{self.FAIL}" + f"{self.BOLD}"
+        else:
+            color = '\x1b[' + color + 'm'
+
+        msg = ' '.join(map(str, args))
+        if self.autonewlines:
+            match = re.match('^\n*', msg)
+            if match:
+                num = self.newlines(match.span()[1])
+                if num:
+                    # print('created', num, 'newlines', repr(msg[:64]))
+                    msg = msg.lstrip('\n')
+
+
+        self.history += msg.splitlines()
+        if len(self.history) > 64:
+            self.history = self.history[64:]
+
+        if header:
+            msg = header + ' ' + msg
+        if color:
+            print(color + msg + f"{self.END}", file=sys.stderr, **kargs)
+        else:
+            print(msg, file=sys.stderr, **kargs)
+        return len(msg)
 
 
 def error(*args, header='\nError:', err=RuntimeError, **kargs):
-	eprint(*args, header=header, v=3, **kargs)
-	raise err
+    eprint(*args, header=header, v=3, **kargs)
+    raise err
 
 
 def flatten(tree):
-	"Flatten a nested list, tuple or dict of any depth into a flat list"
-	# For big data sets use this: https://stackoverflow.com/a/45323085/11343425
-	out = []
-	if isinstance(tree, dict):
-		for key, val in tree.items():
-			if type(val) in (list, tuple, dict):
-				out += flatten(val)
-			else:
-				out.append({key: val})
+    "Flatten a nested list, tuple or dict of any depth into a flat list"
+    # For big data sets use this: https://stackoverflow.com/a/45323085/11343425
+    out = []
+    if isinstance(tree, dict):
+        for key, val in tree.items():
+            if type(val) in (list, tuple, dict):
+                out += flatten(val)
+            else:
+                out.append({key: val})
 
-	else:
-		for item in tree:
-			if type(item) in (list, tuple, dict):
-				out += flatten(item)
-			else:
-				out.append(item)
-	return out
+    else:
+        for item in tree:
+            if type(item) in (list, tuple, dict):
+                out += flatten(item)
+            else:
+                out.append(item)
+    return out
 
 
 def quickrun(*cmd, check=False, encoding='utf-8', errors='replace', mode='w', stdin=None,
-			 verbose=0, testing=False, ofile=None, trifecta=False, printme=False, hidewarning=False, **kargs):
-	'''Run a command, list of commands as arguments or any combination therof and return
-	the output is a list of decoded lines.
-	check    = if the process exits with a non-zero exit code then quit
-	testing  = Print command and don't do anything.
-	ofile    = output file
-	mode     = output file write mode
-	trifecta = return (returncode, stdout, stderr)
-	stdin	 = standard input (auto converted to bytes)
-	printme  = Print to stdout instead of returning it, returns code instead
-	'''
-	cmd = list(map(str, flatten(cmd)))
-	if len(cmd) == 1:
-		cmd = cmd[0]
+             verbose=0, testing=False, ofile=None, trifecta=False, printme=False, hidewarning=False, **kargs):
+    '''Run a command, list of commands as arguments or any combination therof and return
+    the output is a list of decoded lines.
+    check    = if the process exits with a non-zero exit code then quit
+    testing  = Print command and don't do anything.
+    ofile    = output file
+    mode     = output file write mode
+    trifecta = return (returncode, stdout, stderr)
+    stdin    = standard input (auto converted to bytes)
+    printme  = Print to stdout instead of returning it, returns code instead
+    '''
+    cmd = list(map(str, flatten(cmd)))
+    if len(cmd) == 1:
+        cmd = cmd[0]
 
-	if testing:
-		print("Not running command:", cmd)
-		return []
+    if testing:
+        print("Not running command:", cmd)
+        return []
 
-	if verbose:
-		print("Running command:", cmd)
-		print("               =", ' '.join(cmd))
+    if verbose:
+        print("Running command:", cmd)
+        print("               =", ' '.join(cmd))
 
-	if ofile:
-		output = open(ofile, mode=mode)
-	else:
-		output = subprocess.PIPE
+    if ofile:
+        output = open(ofile, mode=mode)
+    else:
+        output = subprocess.PIPE
 
-	if stdin:
-		if type(stdin) != bytes:
-			stdin = stdin.encode()
+    if stdin:
+        if type(stdin) != bytes:
+            stdin = stdin.encode()
 
-	if printme:
-		if trifecta:
-			error("quickrun cant use both printme and trifecta")
-		# todo: make more realtime https://stackoverflow.com/questions/803265/getting-realtime-output-using-subprocess
-		ret = subprocess.run(cmd, check=check, stdout=sys.stdout, stderr=sys.stderr, input=stdin, **kargs)
-		code = ret.returncode
+    if printme:
+        if trifecta:
+            error("quickrun cant use both printme and trifecta")
+        # todo: make more realtime https://stackoverflow.com/questions/803265/getting-realtime-output-using-subprocess
+        ret = subprocess.run(cmd, check=check, stdout=sys.stdout, stderr=sys.stderr, input=stdin, **kargs)
+        code = ret.returncode
 
-	else:
-		#Run the command and get return value
-		ret = subprocess.run(cmd, check=check, stdout=output, stderr=output, input=stdin, **kargs)
-		code = ret.returncode
-		stdout = ret.stdout.decode(encoding=encoding, errors=errors).splitlines() if ret.stdout else []
-		stderr = ret.stderr.decode(encoding=encoding, errors=errors).splitlines() if ret.stderr else []
+    else:
+        # Run the command and get return value
+        ret = subprocess.run(cmd, check=check, stdout=output, stderr=output, input=stdin, **kargs)
+        code = ret.returncode
+        stdout = ret.stdout.decode(encoding=encoding, errors=errors).splitlines() if ret.stdout else []
+        stderr = ret.stderr.decode(encoding=encoding, errors=errors).splitlines() if ret.stderr else []
 
-	if ofile:
-		output.close()
-		return []
+    if ofile:
+        output.close()
+        return []
 
-	if trifecta:
-		return code, stdout, stderr
+    if trifecta:
+        return code, stdout, stderr
 
-	if code and not hidewarning:
-		warn("Process returned code:", code)
+    if code and not hidewarning:
+        warn("Process returned code:", code)
 
-	if printme:
-		return ret.returncode
+    if printme:
+        return ret.returncode
 
-	if not hidewarning:
-		for line in stderr:
-			print(line)
+    if not hidewarning:
+        for line in stderr:
+            print(line)
 
-	return stdout
+    return stdout
 
 
 def play(filename, volume=80, player='', opts='', **kargs):
-	'''Set the volume, play an audio file and then reset the volume to previous level
-	Passes other args onto run'''
-	current_vol = get_volume()
-	set_volume(volume)
+    '''Set the volume, play an audio file and then reset the volume to previous level
+    Passes other args onto run'''
+    current_vol = get_volume()
+    set_volume(volume)
 
-	ext = os.path.splitext(filename)[-1][1:].lower()
-	if not player:
-		if ext in ('ogg',):
-			player = 'ogg123'
-		elif ext in ('mp3',):
-			player = 'mpg123'
-		else:
-			player = 'mpv'	#'aplay'
-	quickrun(player, opts, filename, **kargs)
-	set_volume(current_vol)
+    ext = os.path.splitext(filename)[-1][1:].lower()
+    if not player:
+        if ext in ('ogg',):
+            player = 'ogg123'
+        elif ext in ('mp3',):
+            player = 'mpg123'
+        else:
+            player = 'mpv'  # 'aplay'
+    quickrun(player, opts, filename, **kargs)
+    set_volume(current_vol)
 
 
 def diff_days(*args):
-	'''Return days between two timestamps
-	or between now and timestamp
-	Ex: diff_days(time.time(), time.time()+86400)
-	Ex: diff_days(timestamp)'''
-	if len(args) == 2:
-		start = args[0]
-		end = args[1]
-	else:
-		end = args[0]
-		start = time.time()
-	diff = (dada.fromtimestamp(end) - dada.fromtimestamp(start))
-	return diff.days + diff.seconds / 86400  # + diff.microseconds/86400e6
+    '''Return days between two timestamps
+    or between now and timestamp
+    Ex: diff_days(time.time(), time.time()+86400)
+    Ex: diff_days(timestamp)'''
+    if len(args) == 2:
+        start = args[0]
+        end = args[1]
+    else:
+        end = args[0]
+        start = time.time()
+    diff = (dada.fromtimestamp(end) - dada.fromtimestamp(start))
+    return diff.days + diff.seconds / 86400  # + diff.microseconds/86400e6
 
 
 def local_time(timestamp=None, user_format=None, lstrip=True):
-	'''Given a unix timestamp, show the local time in a nice format:
-	By default will not show date, unless more than a day into future.Format info here:
-	https://docs.python.org/3.5/library/time.html#time.strftime '''
-	if not timestamp:
-		timestamp = time.time()
+    '''Given a unix timestamp, show the local time in a nice format:
+    By default will not show date, unless more than a day into future.Format info here:
+    https://docs.python.org/3.5/library/time.html#time.strftime '''
+    if not timestamp:
+        timestamp = time.time()
 
-	if user_format:
-		fmt = user_format
-	else:
-		fmt = '%I:%M %p'
-		if timestamp and time.localtime()[:3] != time.localtime(timestamp)[:3]:
-			if time.localtime()[:2] != time.localtime(timestamp)[:2]:
-				# New month
-				fmt = '%Y-%m-%d'
-			else:
-				if diff_days(timestamp) < 7:
-					# New day of week
-					fmt = '%a %I:%M %p'
-				else:
-					# New day in same month
-					fmt = '%m-%d %I:%M %p'
+    if user_format:
+        fmt = user_format
+    else:
+        fmt = '%I:%M %p'
+        if timestamp and time.localtime()[:3] != time.localtime(timestamp)[:3]:
+            if time.localtime()[:2] != time.localtime(timestamp)[:2]:
+                # New month
+                fmt = '%Y-%m-%d'
+            else:
+                if diff_days(timestamp) < 7:
+                    # New day of week
+                    fmt = '%a %I:%M %p'
+                else:
+                    # New day in same month
+                    fmt = '%m-%d %I:%M %p'
 
-	if lstrip:
-		return time.strftime(fmt, time.localtime(timestamp)).lstrip('0')
-	else:
-		return time.strftime(fmt, time.localtime(timestamp))
+    if lstrip:
+        return time.strftime(fmt, time.localtime(timestamp)).lstrip('0')
+    else:
+        return time.strftime(fmt, time.localtime(timestamp))
 
 
 def sig(num, digits=3):
-	"Return number formatted for significant digits"
-	num = float(num)
-	if num == 0:
-		return '0'
-	negative = '-' if num < 0 else ''
-	num = abs(num)
-	power = math.log(num, 10)
-	if num < 1:
-		num = int(10**(-int(power) + digits) * num)
-		return negative + '0.' + '0' * -int(power) + str(int(num)).rstrip('0')
-	elif power < digits - 1:
-		return negative + ('{0:.' + str(digits) + 'g}').format(num)
-	else:
-		return negative + str(int(num))
+    "Return number formatted for significant digits"
+    num = float(num)
+    if num == 0:
+        return '0'
+    negative = '-' if num < 0 else ''
+    num = abs(num)
+    power = math.log(num, 10)
+    if num < 1:
+        num = int(10**(-int(power) + digits) * num)
+        return negative + '0.' + '0' * -int(power) + str(int(num)).rstrip('0')
+    elif power < digits - 1:
+        return negative + ('{0:.' + str(digits) + 'g}').format(num)
+    else:
+        return negative + str(int(num))
 
 
 def fmt_clock(num, smallest=None):
-	'''
-	Format in 9:12 format
-	smallest    = smallest units for non pretty printing
-	'''
-	# Normal "2:40" style format
-	num = int(num)
-	s = str(datetime.timedelta(seconds=num))
-	if num < 3600:
-		s = s[2:]  # .lstrip('0')
+    '''
+    Format in 9:12 format
+    smallest    = smallest units for non pretty printing
+    '''
+    # Normal "2:40" style format
+    num = int(num)
+    s = str(datetime.timedelta(seconds=num))
+    if num < 3600:
+        s = s[2:]  # .lstrip('0')
 
-	# Strip smaller units
-	if smallest == 'minutes' or (not smallest and num >= 3600):
-		return s[:-3]
-	elif smallest == 'hours':
-		return s[:-6] + ' hours'
-	else:
-		return s
+    # Strip smaller units
+    if smallest == 'minutes' or (not smallest and num >= 3600):
+        return s[:-3]
+    elif smallest == 'hours':
+        return s[:-6] + ' hours'
+    else:
+        return s
 
 
 def bisect_small(lis, num):
-	'''Given a sorted list, returns the index of the biggest number <= than num
-	Unlike bisect will never return an index which doesn't exist'''
-	end = len(lis) - 1
-	for x in range(end + 1):
-		if lis[x] >= num:
-			return max(x - 1, 0)
-	else:
-		return end
+    '''Given a sorted list, returns the index of the biggest number <= than num
+    Unlike bisect will never return an index which doesn't exist'''
+    end = len(lis) - 1
+    for x in range(end + 1):
+        if lis[x] >= num:
+            return max(x - 1, 0)
+    else:
+        return end
 
 
 def fmt_time(num, digits=2, pretty=True, smallest=None, fields=None, zeroes='skip', **kargs):
-	'''Return a neatly formated time string.
-	sig         = the number of significant digits.
-	fields      = Instead of siginificant digits, specify the number of date fields to produce.
-	fields overrides digits
-	zeroes		= Show fields with zeroes or skip to the next field
-	todo make fields the default?
-	'''
-	if num < 0:
-		num *= -1
-		return '-' + fmt_time(**locals())
-	if not pretty:
-		return fmt_clock(num, smallest)
+    '''Return a neatly formated time string.
+    sig         = the number of significant digits.
+    fields      = Instead of siginificant digits, specify the number of date fields to produce.
+    fields overrides digits
+    zeroes      = Show fields with zeroes or skip to the next field
+    todo make fields the default?
+    '''
+    if num < 0:
+        num *= -1
+        return '-' + fmt_time(**locals())
+    if not pretty:
+        return fmt_clock(num, smallest)
 
-	if fields:
-		digits = 0
-		fr = fields		#fields remaining
-	elif 'sig' in kargs:
-		fr = 0
-		digits = kargs['sig']
-		print("\nWarning! sig is deprecated. Use <digits> instead.\n")
+    if fields:
+        digits = 0
+        fr = fields     # fields remaining
+    elif 'sig' in kargs:
+        fr = 0
+        digits = kargs['sig']
+        print("\nWarning! sig is deprecated. Use <digits> instead.\n")
 
-	# Return number and unit text
-	if num < 5.391e-44:
-		return "0 seconds"
-	out = []
-	# For calculations involving leap years, use the datetime library:
-	limits = (5.391e-44, 1e-24, 1e-21, 1e-18, 1e-15, 1e-12, 1e-09, 1e-06, 0.001, 1, 60,
-			  3600, 3600 * 24, 3600 * 24 * 7, 3600 * 24 * 30.4167, 3600 * 24 * 365.2422)
-	names = (
-		'Planck time',
-		'yoctosecond',
-		'zeptosecond',
-		'attosecond',
-		'femtosecond',
-		'picosecond',
-		'nanosecond',
-		'microsecond',
-		'millisecond',
-		'second',
-		'minute',
-		'hour',
-		'day',
-		'week',
-		'month',
-		'year')
+    # Return number and unit text
+    if num < 5.391e-44:
+        return "0 seconds"
+    out = []
+    # For calculations involving leap years, use the datetime library:
+    limits = (5.391e-44, 1e-24, 1e-21, 1e-18, 1e-15, 1e-12, 1e-09, 1e-06, 0.001, 1, 60,
+              3600, 3600 * 24, 3600 * 24 * 7, 3600 * 24 * 30.4167, 3600 * 24 * 365.2422)
+    names = (
+        'Planck time',
+        'yoctosecond',
+        'zeptosecond',
+        'attosecond',
+        'femtosecond',
+        'picosecond',
+        'nanosecond',
+        'microsecond',
+        'millisecond',
+        'second',
+        'minute',
+        'hour',
+        'day',
+        'week',
+        'month',
+        'year')
 
-	index = bisect_small(limits, num) + 1
-	while index > 0:
-		index -= 1
-		unit = limits[index]		#
-		u_num = num / unit          # unit number for current name
-		name = names[index]			# Unit name like weeks
+    index = bisect_small(limits, num) + 1
+    while index > 0:
+        index -= 1
+        unit = limits[index]        #
+        u_num = num / unit          # unit number for current name
+        name = names[index]         # Unit name like weeks
 
-		if name == 'week' and u_num < 2:
-			# Replace weeks with days when less than 2 weeks
-			digits -= 1
-			continue
+        if name == 'week' and u_num < 2:
+            # Replace weeks with days when less than 2 weeks
+            digits -= 1
+            continue
 
-		#In fields modes, just keep outputting fields until fr is exhausted
-		if fields:
-			fr -= 1
-			u_num = int(u_num)
-			if u_num == 0 and zeroes == 'skip':
-				continue
-			out += [str(u_num) + ' ' + name + ('s' if u_num != 1 else '')]
-			num -= u_num * unit
-			if fr == 0:
-				break
-			continue
+        # In fields modes, just keep outputting fields until fr is exhausted
+        if fields:
+            fr -= 1
+            u_num = int(u_num)
+            if u_num == 0 and zeroes == 'skip':
+                continue
+            out += [str(u_num) + ' ' + name + ('s' if u_num != 1 else '')]
+            num -= u_num * unit
+            if fr == 0:
+                break
+            continue
 
 
-		# Avoids the "3 minutes, 2 nanoseconds" nonsense.
-		if u_num < 1 and zeroes == 'skip':
-			if name in ('second', 'minute', 'hour', 'week', 'month'):
-				digits -= 2
-			else:
-				digits -= 3
-			continue
+        # Avoids the "3 minutes, 2 nanoseconds" nonsense.
+        if u_num < 1 and zeroes == 'skip':
+            if name in ('second', 'minute', 'hour', 'week', 'month'):
+                digits -= 2
+            else:
+                digits -= 3
+            continue
 
-		#In digits mode, output fields containing significant digits until seconds are reached, then stop
-		if num >= 60:     # Minutes or higher
-			u_num = int(u_num)
-			out += [str(u_num) + ' ' + name + ('s' if u_num != 1 else '')]
-			digits -= len(str(u_num))
-			num -= u_num * unit
-			if digits <= 0:
-				break
-		else:
-			# If time is less than a minute, just output last field and quit
-			d = digits if digits >= 1 else 1
-			out += [sig(u_num, d) + ' ' + name + ('s' if u_num != 1 else '')]
-			break
+        # In digits mode, output fields containing significant digits until seconds are reached, then stop
+        if num >= 60:     # Minutes or higher
+            u_num = int(u_num)
+            out += [str(u_num) + ' ' + name + ('s' if u_num != 1 else '')]
+            digits -= len(str(u_num))
+            num -= u_num * unit
+            if digits <= 0:
+                break
+        else:
+            # If time is less than a minute, just output last field and quit
+            d = digits if digits >= 1 else 1
+            out += [sig(u_num, d) + ' ' + name + ('s' if u_num != 1 else '')]
+            break
 
-	return ', '.join(out)
+    return ', '.join(out)
 
 
 class DotDict(dict):
-	'''
-	Example:
-	m = dotdict({'first_name': 'Eduardo'}, last_name='Pool', age=24, sports=['Soccer'])
+    '''
+    Example:
+    m = dotdict({'first_name': 'Eduardo'}, last_name='Pool', age=24, sports=['Soccer'])
 
-	Modified from:
-	https://stackoverflow.com/questions/2352181/how-to-use-a-dot-to-access-members-of-dictionary
-	to set unlimited chained .variables like DotDict().tom.bob = 3
-	'''
+    Modified from:
+    https://stackoverflow.com/questions/2352181/how-to-use-a-dot-to-access-members-of-dictionary
+    to set unlimited chained .variables like DotDict().tom.bob = 3
+    '''
 
-	def __init__(self, *args, **kwargs):
-		super(DotDict, self).__init__(*args, **kwargs)
-		for arg in args:
-			if isinstance(arg, dict):
-				for k, v in arg.items():
-					self[k] = v
+    def __init__(self, *args, **kwargs):
+        super(DotDict, self).__init__(*args, **kwargs)
+        for arg in args:
+            if isinstance(arg, dict):
+                for k, v in arg.items():
+                    self[k] = v
 
-		if kwargs:
-			for k, v in kwargs.items():
-				self[k] = v
+        if kwargs:
+            for k, v in kwargs.items():
+                self[k] = v
 
-	def __getattr__(self, attr):
-		if attr in self:
-			return self.get(attr)
-		else:
-			self[attr] = DotDict()
-			return self[attr]
+    def __getattr__(self, attr):
+        if attr in self:
+            return self.get(attr)
+        else:
+            self[attr] = DotDict()
+            return self[attr]
 
-	def __setattr__(self, key, value):
-		self.__setitem__(key, value)
+    def __setattr__(self, key, value):
+        self.__setitem__(key, value)
 
-	def __contains__(self, key):
-		return bool(key in self.__dict__)
+    def __contains__(self, key):
+        return bool(key in self.__dict__)
 
-	def __setitem__(self, key, value):
-		super(DotDict, self).__setitem__(key, value)
-		self.__dict__.update({key: value})
+    def __setitem__(self, key, value):
+        super(DotDict, self).__setitem__(key, value)
+        self.__dict__.update({key: value})
 
-	def __delattr__(self, item):
-		self.__delitem__(item)
+    def __delattr__(self, item):
+        self.__delitem__(item)
 
-	def __delitem__(self, key):
-		super(DotDict, self).__delitem__(key)
-		del self.__dict__[key]
+    def __delitem__(self, key):
+        super(DotDict, self).__delitem__(key)
+        del self.__dict__[key]
 
 
 eprint = Eprinter(verbose=1).eprint     # pylint: disable=C0103
