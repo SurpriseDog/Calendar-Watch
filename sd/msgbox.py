@@ -17,11 +17,11 @@ if find_spec("PyQt5"):
     import PyQt5.QtWidgets as qwidgets
     import PyQt5.QtGui as qgui
 
-if find_spec("tkinter"):
+elif find_spec("tkinter"):
     import tkinter as tk
 else:
     print("Unable to import PyQt5 or tkinter")
-    print("pip3 install PyQt5 tkinter")
+    print("Please install with: pip3 install PyQt5 tkinter")
 
 
 def quote(text):
