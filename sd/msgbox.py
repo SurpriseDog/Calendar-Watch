@@ -11,16 +11,18 @@ from importlib.util import find_spec
 
 
 
-# Setting tkinter as default due to issues with PyQT5
-if find_spec("tkinter"):
+if find_spec("PyQt6"):
+    import PyQt6.QtCore as qcore
+    import PyQt6.QtWidgets as qwidgets
+    import PyQt6.QtGui as qgui
+elif find_spec("tkinter"):
     import tkinter as tk
-elif find_spec("PyQt5"):
-    import PyQt5.QtCore as qcore
-    import PyQt5.QtWidgets as qwidgets
-    import PyQt5.QtGui as qgui
 else:
-    print("Unable to import PyQt5 or tkinter")
-    print("Please install with PyQT5 with: pip3 install PyQt5")
+    print("Unable to import PyQt6 or tkinter")
+    print('''Please install with PyQt6 with:
+            sudo python3 -m pip install pip setuptools --upgrade
+            pip3 install PyQt6''')
+
     print("Or install Tkinter with: sudo apt-get install python3-tk")
 
 
@@ -85,7 +87,7 @@ def pqbox(msg, wrap=640, title='Info', margin=20):
     app = qwidgets.QApplication(sys.argv)
     window = qwidgets.QWidget()
     window.resize(wrap + margin * 2, 200)
-    window.move(app.desktop().screen().rect().center() - window.rect().center())
+    window.move(app.primaryScreen().availableGeometry().center() - window.rect().center())
 
     label = qwidgets.QLabel(window)
     font = qgui.QFont()
@@ -96,7 +98,8 @@ def pqbox(msg, wrap=640, title='Info', margin=20):
     label.move(margin, margin)
     label.setFixedWidth(wrap)
     label.setWordWrap(True)
-    label.setAlignment(qcore.Qt.AlignCenter)
+    label.setAlignment(qcore.Qt.AlignmentFlag.AlignCenter)
+
     label.setText(msg)
     label.adjustSize()      # Do this or the .height() will be wrong
     # txtsize = label.fontMetrics().boundingRect(label.text())
@@ -113,7 +116,7 @@ def pqbox(msg, wrap=640, title='Info', margin=20):
 
     window.setWindowTitle(title)
     window.show()
-    app.exec_()
+    app.exec()
 
 
 def msgbox(*args, wrap=640, throwerr=False):
@@ -124,7 +127,7 @@ def msgbox(*args, wrap=640, throwerr=False):
     '''
     msg = ' '.join(list(map(str, args)))
 
-    if "PyQt5" in sys.modules:
+    if "PyQt6" in sys.modules:
         pqbox(msg, wrap)
 
     elif "tkinter" in sys.modules:
@@ -138,7 +141,7 @@ def msgbox(*args, wrap=640, throwerr=False):
 
 
     else:
-        print("\nInstall PyQt5, tkinter or zenity to get this message on the desktop:")
+        print("\nInstall PyQt6, tkinter or zenity to get this message on the desktop:")
         print(msg)
         if throwerr:
             raise ValueError("Cannot show msgbox")
