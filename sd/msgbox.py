@@ -6,14 +6,10 @@ import sys
 import time
 import shutil
 import subprocess
-import multiprocessing as mp
 from importlib.util import find_spec
+# Must be a standalone script to work with gc.py
 
-from sd.common import play
-from sd.common import indenter
-from sd.common import quote, warn
-from sd.common import srun, quickrun
-from sd.common import spawn
+
 
 # Import PyQt and fallback on tkinter otherwise
 if find_spec("PyQt5"):
@@ -28,6 +24,17 @@ else:
     print("pip3 install PyQt5 tkinter")
 
 
+def quote(text):
+    "Wrap a string in the minimum number of quotes to be quotable"
+    for q in ('"', "'", "'''"):
+        if q not in text:
+            break
+    else:
+        return repr(text)
+    if "\n" in text:
+        q = "'''"
+    return q + text + q
+
 
 
 ################################################################################
@@ -36,7 +43,8 @@ else:
 def notify(*text):
     '''Use notify send to send a transient message
     uid = User ID Example: 1000'''
-    return srun('notify-send', quote(' '.join(text)))  # , user=uid)
+    cmd = ['notify-send', quote(' '.join(text))]
+    return subprocess.run(cmd, check=False).returncode
 
 
 def popup(*text, question=False, timeout=99999999):
@@ -53,16 +61,6 @@ def popup(*text, question=False, timeout=99999999):
     cmd = cmd.split() + ['--text=' + text]
     print(cmd)
     return subprocess.run(cmd, check=False).returncode
-
-
-def cow_msg(*msg, limit=300):
-    "Messages from a cow"
-    msg = ' '.join(msg)
-    moo = "/usr/lib/libreoffice/share/gallery/sounds/cow.wav"
-    if os.path.exists(moo):
-        spawn(play, moo)
-    for line in indenter(msg, wrap=limit, even=True):
-        quickrun("/usr/games/xcowsay", line)
 
 
 def tk_box(msg, wrap=640, title='Info'):
@@ -118,40 +116,29 @@ def pqbox(msg, wrap=640, title='Info', margin=20):
     app.exec_()
 
 
-def msgbox(*args, wrap=640, wait=False, throwerr=False):
+def msgbox(*args, wrap=640, throwerr=False):
     '''
     Popup message box, requires PyQT, tkinter or zenity.
     Guaranteed not to break, even if third party libraries not installed.
-    wait = wait for user to acknowledge before continuing
     returns False if message was not delivered to desktop
     '''
     msg = ' '.join(list(map(str, args)))
 
     if "PyQt5" in sys.modules:
-        if wait:
-            pqbox(msg, wrap)
-        else:
-            # PyQt must be created in a seperate process, a seperate thread creates errors
-            proc = mp.Process(target=pqbox, args=(msg,), kwargs={'wrap': wrap})
-            proc.start()
+        pqbox(msg, wrap)
 
     elif "tkinter" in sys.modules:
-        if wait:
-            tk_box(msg, wrap)
-        else:
-            spawn(tk_box, msg, wrap)
+        tk_box(msg, wrap)
+
 
     elif shutil.which('zenity'):
         cmd = ['zenity', '--width', str(len(msg)*10), '--info', '--timeout=99999999', '--text='+quote(msg)]
-        if wait:
-            ret = subprocess.run(cmd, check=False)
-            return not bool(ret.returncode)
-        else:
-            subprocess.Popen(cmd)
+        ret = subprocess.run(cmd, check=False)
+        return not bool(ret.returncode)
 
 
     else:
-        warn("\nInstall PyQt5, tkinter or zenity to get this message on the desktop:")
+        print("\nInstall PyQt5, tkinter or zenity to get this message on the desktop:")
         print(msg)
         if throwerr:
             raise ValueError("Cannot show msgbox")
@@ -162,30 +149,7 @@ def msgbox(*args, wrap=640, wait=False, throwerr=False):
 
 
 
-'''
-import threading, queue
-if __name__ == "__main__":
-    def send_msg(msg):
-        proc = mp.Process(target=pqbox, args=(msg,))
-        proc.start()
-
-    def my_func():
-        send_msg('hello')
-
-    msg='hello'
-    send_msg(msg)
-    print("The program continues to run.")
-
-    time.sleep(2)
-    thread = threading.Thread(target=my_func)
-    thread.daemon = False
-    thread.start()
-'''
-
-
-
-
 ################################################################################
 if __name__ == "__main__":
     MSG = ' '.join(sys.argv[1:])
-    msgbox(MSG, wait=False)
+    msgbox(MSG)
