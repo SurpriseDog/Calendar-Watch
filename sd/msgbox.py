@@ -11,17 +11,17 @@ from importlib.util import find_spec
 
 
 
-# Import PyQt and fallback on tkinter otherwise
-if find_spec("PyQt5"):
+# Setting tkinter as default due to issues with PyQT5
+if find_spec("tkinter"):
+    import tkinter as tk
+elif find_spec("PyQt5"):
     import PyQt5.QtCore as qcore
     import PyQt5.QtWidgets as qwidgets
     import PyQt5.QtGui as qgui
-
-elif find_spec("tkinter"):
-    import tkinter as tk
 else:
     print("Unable to import PyQt5 or tkinter")
-    print("Please install with: pip3 install PyQt5 tkinter")
+    print("Please install with PyQT5 with: pip3 install PyQt5")
+    print("Or install Tkinter with: sudo apt-get install python3-tk")
 
 
 def quote(text):

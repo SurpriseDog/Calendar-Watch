@@ -7,7 +7,9 @@ My script will automatically monitor the gnome-calendar database file for change
 
 Install PyQT for the msgbox with: `pip3 install PyQt5`
 
-If you get PyQT errors try running: `sudo apt-get install --reinstall libxcb-xinerama0`
+If you get PyQT error "Could not load the Qt platform plugin "xcb" then try running:
+
+    sudo apt-get install --reinstall libxcb-xinerama0
 
 ### Running
 
