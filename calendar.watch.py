@@ -77,12 +77,6 @@ def parse_line(data, line):
 
 def read_calendar(path, events, modified):
     "Read calendar if the file has been modified and return True"
-    if os.path.exists(path):
-        if not modified:
-            print('Reading', path)
-    else:
-        print('Cannot find:', path)
-        return False
 
     if os.path.getmtime(path) > modified:
         print("\n\nCalendar Modified")
@@ -150,7 +144,9 @@ def main():
         path = sys.argv[1]
     else:
         path = os.path.join(os.path.expanduser('~'), '.local/share/evolution/calendar/system/calendar.ics')
-
+    if not os.path.exists(path):
+        print('Cannot find:', path)
+        return False
 
     events = DotDict()      # uid -> Event
     modified = 0            # Last time calendar file was modified
